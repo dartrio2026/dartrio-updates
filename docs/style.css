@@ -1,0 +1,88 @@
+/* DARTRIO – Webseite (gemeinsame Gestaltung aller Seiten) */
+@font-face { font-family: "Saira"; font-style: italic; font-weight: 100 900; font-display: swap;
+             src: url("bilder/saira-latin-italic.woff2") format("woff2"); }
+:root {
+  --bg: #0c1014; --surface: #141920; --panel: rgba(255,255,255,0.04); --line: rgba(255,255,255,0.08);
+  --lineS: rgba(255,255,255,0.16); --fg: #eef2f4; --mut: rgba(255,255,255,0.6); --hi: #a9bcc0;
+  --hiSoft: rgba(169,188,192,0.14); --akzent: #ff9a7a; --r: 22px; --max: 1160px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); -webkit-font-smoothing: antialiased;
+       font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; }
+a { color: inherit; }
+img { max-width: 100%; height: auto; display: block; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+
+/* Hinweisleiste: Vorschau */
+.vorschau { background: #1d2430; color: var(--mut); font-size: 13px; text-align: center; padding: 7px 16px;
+            border-bottom: 1px solid var(--line); }
+.vorschau b { color: var(--fg); }
+
+/* Kopfzeile */
+header { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+         background: rgba(12,16,20,0.78); border-bottom: 1px solid var(--line); }
+header .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; gap: 20px; }
+.marke { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.marke img { width: 38px; height: 38px; }
+.marke span { font-weight: 700; letter-spacing: .22em; font-size: 16px; }
+nav { display: flex; gap: 24px; align-items: center; }
+nav a { text-decoration: none; color: var(--mut); font-size: 15px; }
+nav a:hover { color: var(--fg); }
+
+.knopf { display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none;
+         font: inherit; font-weight: 600; font-size: 16px; padding: 13px 22px; border-radius: 999px;
+         border: 1px solid var(--lineS); color: var(--fg); background: transparent; cursor: pointer;
+         transition: transform .15s, background .15s; }
+.knopf:hover { transform: translateY(-1px); background: var(--panel); }
+.knopf.haupt { background: #fff; color: #11151a; border-color: #fff; }
+.knopf.haupt:hover { background: #e9eef0; }
+.knopf.klein { padding: 9px 16px; font-size: 14px; }
+.knopf svg { width: 18px; height: 18px; }
+
+section { padding: 96px 0; scroll-margin-top: 70px; }
+.titel { text-align: center; max-width: 720px; margin: 0 auto 56px; }
+.titel small, .zeile { display: inline-block; color: var(--hi); letter-spacing: .2em; text-transform: uppercase; font-size: 13px; }
+.titel small { margin-bottom: 12px; }
+h1, .gross { font-family: "Saira", system-ui, sans-serif; font-style: italic; font-weight: 800; letter-spacing: -.01em; }
+h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.12; margin: 0 0 14px; letter-spacing: -.02em; }
+.titel p { color: var(--mut); margin: 0; }
+.mut { color: var(--mut); }
+
+/* Fußzeile */
+footer { border-top: 1px solid var(--line); padding: 56px 0 32px; color: var(--mut); font-size: 14.5px; background: #0a0d10; }
+.fuss { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; }
+.fuss h4 { color: var(--fg); font-size: 14px; margin: 0 0 12px; letter-spacing: .04em; }
+.fuss ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.fuss a { text-decoration: none; }
+.fuss a:hover { color: var(--fg); }
+.fuss .marke { margin-bottom: 14px; color: var(--fg); }
+.fuss-unten { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 40px;
+              padding-top: 22px; border-top: 1px solid var(--line); font-size: 13px; }
+
+/* Rechtliche Seiten */
+.recht { max-width: 780px; margin: 0 auto; padding: 72px 24px 96px; }
+.recht h1 { font-size: clamp(36px, 5vw, 52px); margin: 0 0 8px; }
+.recht h2 { font-size: 22px; margin: 36px 0 10px; letter-spacing: 0; }
+.recht p, .recht li { color: var(--mut); }
+.platzhalter { border: 1px dashed var(--akzent); background: rgba(255,154,122,0.08); color: var(--fg); border-radius: 14px;
+               padding: 14px 18px; font-size: 15px; margin: 18px 0 8px; }
+.ph { background: rgba(255,154,122,0.16); color: var(--fg); border-radius: 6px; padding: 0 6px; }
+
+/* Fenster (Vorschau-Hinweis beim Kaufen) */
+.fenster { position: fixed; inset: 0; background: rgba(5,7,10,0.7); display: none; align-items: center; justify-content: center;
+           z-index: 50; padding: 20px; }
+.fenster.offen { display: flex; }
+.fenster > div { background: var(--surface); border: 1px solid var(--lineS); border-radius: var(--r); padding: 30px;
+                 max-width: 440px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+.fenster h3 { margin: 0 0 8px; font-size: 22px; }
+.fenster p { color: var(--mut); margin: 0 0 20px; }
+
+@media (max-width: 900px) {
+  nav a:not(.knopf) { display: none; }
+  .fuss { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  section { padding: 72px 0; }
+  .fuss { grid-template-columns: 1fr; }
+}
