@@ -2,6 +2,8 @@
 
 Autoscoring für Dart mit 5 Kameras.
 
+**Webseite:** https://dartrio2026.github.io/dartrio-updates/
+
 **Neueste Version:** [Releases › Latest](https://github.com/dartrio2026/dartrio-updates/releases/latest)
 
 | System | Datei | Installieren |
