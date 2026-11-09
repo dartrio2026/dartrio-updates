@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DARTRIO – Automatisches Scoring für Steeldart</title>
+<meta name="description" content="DARTRIO zählt deine Darts automatisch – mit 5 Kameras, offline, für Mac und Windows.">
+<link rel="icon" type="image/png" href="bilder/logo.png">
+<meta property="og:title" content="DARTRIO – Automatisches Scoring für Steeldart">
+<meta property="og:description" content="5 Kameras erkennen jeden Dart. Du wirfst, DARTRIO zählt.">
+<meta property="og:image" content="bilder/spiel-dunkel.jpg">
+<style>
+  @font-face { font-family: "Saira"; font-style: italic; font-weight: 100 900; font-display: swap;
+               src: url("bilder/saira-latin-italic.woff2") format("woff2"); }
+  :root {
+    --bg: #0c1014; --surface: #141920; --panel: rgba(255,255,255,0.04); --line: rgba(255,255,255,0.08);
+    --lineS: rgba(255,255,255,0.16); --fg: #eef2f4; --mut: rgba(255,255,255,0.58); --hi: #a9bcc0;
+    --hiSoft: rgba(169,188,192,0.14); --ok: #3ccf7a; --rot: #e5484d;
+    --r: 22px; --max: 1160px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--fg); -webkit-font-smoothing: antialiased;
+         font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", system-ui, sans-serif; }
+  a { color: inherit; }
+  img { max-width: 100%; display: block; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+
+  /* Kopfzeile */
+  header { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+           background: rgba(12,16,20,0.72); border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .marke { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  .marke img { width: 38px; height: 38px; }
+  .marke span { font-weight: 700; letter-spacing: .22em; font-size: 16px; }
+  nav { display: flex; gap: 26px; align-items: center; }
+  nav a { text-decoration: none; color: var(--mut); font-size: 15px; }
+  nav a:hover { color: var(--fg); }
+  .knopf { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; font-size: 16px;
+           padding: 13px 22px; border-radius: 999px; border: 1px solid var(--lineS); color: var(--fg); background: transparent;
+           transition: transform .15s, background .15s; cursor: pointer; }
+  .knopf:hover { transform: translateY(-1px); background: var(--panel); }
+  .knopf.haupt { background: #fff; color: #11151a; border-color: #fff; }
+  .knopf.haupt:hover { background: #e9eef0; }
+  .knopf.klein { padding: 9px 16px; font-size: 14px; }
+  .knopf svg { width: 18px; height: 18px; }
+
+  /* Start */
+  .held { padding: 96px 0 40px; text-align: center; position: relative; overflow: hidden; }
+  .held::before { content: ""; position: absolute; inset: -40% -20% auto; height: 120%;
+                  background: radial-gradient(closest-side, rgba(169,188,192,0.16), transparent 70%); pointer-events: none; }
+  .zeile { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
+           color: var(--hi); border: 1px solid var(--lineS); border-radius: 999px; padding: 6px 14px; }
+  h1 { font-family: "Saira", system-ui, sans-serif; font-style: italic; font-weight: 800; letter-spacing: -.01em;
+       font-size: clamp(44px, 7vw, 86px); line-height: 1.02; margin: 22px 0 18px; }
+  .held p.unter { font-size: clamp(18px, 2.1vw, 22px); color: var(--mut); max-width: 640px; margin: 0 auto 34px; }
+  .aktionen { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .version-hinweis { margin-top: 16px; font-size: 14px; color: var(--mut); min-height: 1.6em; }
+  .buehne { margin: 64px auto 0; max-width: 1080px; border-radius: 18px; overflow: hidden; border: 1px solid var(--lineS);
+            box-shadow: 0 40px 120px rgba(0,0,0,.55), 0 0 0 8px rgba(255,255,255,0.02); position: relative; }
+
+  section { padding: 96px 0; }
+  .titel { text-align: center; max-width: 700px; margin: 0 auto 56px; }
+  .titel small { display: block; color: var(--hi); letter-spacing: .2em; text-transform: uppercase; font-size: 13px; margin-bottom: 12px; }
+  h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.12; margin: 0 0 14px; letter-spacing: -.02em; }
+  .titel p { color: var(--mut); margin: 0; }
+
+  /* Funktionen */
+  .raster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .karte { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 28px; }
+  .karte .sym { width: 44px; height: 44px; border-radius: 12px; background: var(--hiSoft); display: grid; place-items: center;
+                color: var(--hi); margin-bottom: 18px; }
+  .karte .sym svg { width: 22px; height: 22px; }
+  .karte h3 { margin: 0 0 8px; font-size: 19px; }
+  .karte p { margin: 0; color: var(--mut); font-size: 15.5px; }
+
+  /* Einblicke */
+  .einblicke { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  .bild { border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: var(--surface); margin: 0; }
+  .bild figcaption { padding: 16px 20px; color: var(--mut); font-size: 15px; border-top: 1px solid var(--line); }
+  .bild figcaption b { color: var(--fg); font-weight: 600; }
+
+  /* Ablauf */
+  .schritte { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: s; }
+  .schritt { padding: 28px; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel); }
+  .schritt::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 36px; height: 36px;
+                     border-radius: 50%; border: 1px solid var(--lineS); font-weight: 700; margin-bottom: 16px; color: var(--hi); }
+  .schritt h3 { margin: 0 0 6px; font-size: 18px; }
+  .schritt p { margin: 0; color: var(--mut); font-size: 15.5px; }
+  .setup { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-top: 56px; }
+  .setup img { border-radius: var(--r); border: 1px solid var(--line); }
+  .setup ul { padding: 0; margin: 0; list-style: none; display: grid; gap: 12px; }
+  .setup li { padding-left: 30px; position: relative; color: var(--mut); }
+  .setup li::before { content: ""; position: absolute; left: 0; top: .55em; width: 14px; height: 14px; border-radius: 50%;
+                      border: 2px solid var(--hi); }
+  .setup li b { color: var(--fg); font-weight: 600; }
+
+  /* Download */
+  .download { background: linear-gradient(180deg, var(--surface), var(--bg)); border-top: 1px solid var(--line); }
+  .dl-raster { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 920px; margin: 0 auto; }
+  .dl { background: var(--surface); border: 1px solid var(--lineS); border-radius: var(--r); padding: 30px; display: flex;
+        flex-direction: column; gap: 14px; }
+  .dl.empfohlen { border-color: var(--hi); box-shadow: 0 0 0 1px var(--hi) inset; }
+  .dl-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .dl h3 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+  .dl h3 svg { width: 24px; height: 24px; }
+  .marke-klein { font-size: 12px; color: var(--bg); background: var(--hi); border-radius: 999px; padding: 3px 10px; font-weight: 700; }
+  .dl .meta { color: var(--mut); font-size: 14.5px; }
+  .dl .anl { color: var(--mut); font-size: 14.5px; margin: 0; padding-left: 18px; }
+  .dl .anl li { margin: 4px 0; }
+  .dl .knopf { justify-content: center; margin-top: auto; }
+  .info { max-width: 920px; margin: 22px auto 0; display: flex; gap: 10px 26px; flex-wrap: wrap; justify-content: center;
+          color: var(--mut); font-size: 14.5px; }
+  .info a { color: var(--hi); }
+  .lade { opacity: .55; }
+
+  footer { border-top: 1px solid var(--line); padding: 34px 0; color: var(--mut); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 900px) {
+    nav a:not(.knopf) { display: none; }
+    .raster, .schritte { grid-template-columns: 1fr 1fr; }
+    .einblicke, .setup, .dl-raster { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .raster, .schritte { grid-template-columns: 1fr; }
+    section { padding: 72px 0; }
+    .held { padding-top: 64px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="marke" href="#"><img src="bilder/logo.png" alt=""><span>DARTRIO</span></a>
+    <nav>
+      <a href="#funktionen">Funktionen</a>
+      <a href="#einblicke">Einblicke</a>
+      <a href="#so-gehts">So geht's</a>
+      <a class="knopf klein haupt" href="#download">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="held">
+    <div class="wrap">
+      <span class="zeile">Steeldart · Autoscoring</span>
+      <h1>Du wirfst.<br>DARTRIO zählt.</h1>
+      <p class="unter">Fünf Kameras rund um dein Board erkennen jeden Dart und tragen die Punkte automatisch ein –
+        ohne Tippen, ohne Rechnen, ganz ohne Internet.</p>
+      <div class="aktionen">
+        <a class="knopf haupt" id="held-download" href="#download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span>Kostenlos laden</span></a>
+        <a class="knopf" href="#einblicke">Einblicke ansehen</a>
+      </div>
+      <div class="version-hinweis" id="held-version">für Mac und Windows</div>
+      <div class="buehne"><img src="bilder/spiel-dunkel.jpg" alt="DARTRIO im Spiel: 501, Scheibe in der Mitte, Spieler links und rechts" width="1600" height="1000"></div>
+    </div>
+  </div>
+
+  <section id="funktionen">
+    <div class="wrap">
+      <div class="titel">
+        <small>Was DARTRIO kann</small>
+        <h2>Konzentrier dich aufs Werfen.</h2>
+        <p>Alles andere übernimmt die App – vom Bull-Off bis zum Checkout.</p>
+      </div>
+      <div class="raster">
+        <div class="karte">
+          <div class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+          <h3>Automatisches Scoring</h3>
+          <p>Fünf Kameras sehen jeden Dart aus einem anderen Winkel. DARTRIO berechnet daraus, wo er steckt, und zählt sofort.</p>
+        </div>
+        <div class="karte">
+          <div class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Lieber ehrlich als falsch</h3>
+          <p>Ist ein Dart nicht eindeutig – etwa direkt am Draht – zeigt DARTRIO ein „?“ statt falscher Punkte. Ein Tipp auf die Scheibe genügt.</p>
+        </div>
+        <div class="karte">
+          <div class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
+          <h3>Kalibriert sich selbst</h3>
+          <p>Board leer lassen, starten – DARTRIO findet Scheibe und Kameras von allein und ordnet sie richtig zu.</p>
+        </div>
+        <div class="karte">
+          <div class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m8 15 4-4 3 3 5-6"/></svg></div>
+          <h3>501 &amp; mehr</h3>
+          <p>X01 mit Double Out, Legs, Bull-Off zum Ausbullen, Checkout-Guide und ein Bot als Gegner, wenn du allein trainierst.</p>
+        </div>
+        <div class="karte">
+          <div class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 3.4-2.2"/><path d="M12 20h.01"/></svg></div>
+          <h3>Läuft komplett offline</h3>
+          <p>Keine Cloud, kein Konto, keine Daten im Netz. Kameras und Erkennung laufen nur auf deinem Rechner.</p>
+        </div>
+        <div class="karte">
+          <div class="sym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
+          <h3>Updates mit einem Klick</h3>
+          <p>Gibt es eine neue Version, sagt DARTRIO beim Start Bescheid. Kalibrierung und Daten bleiben erhalten.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="einblicke" style="padding-top: 0">
+    <div class="wrap">
+      <div class="titel">
+        <small>Einblicke</small>
+        <h2>Klar, ruhig, auf den Punkt.</h2>
+        <p>Große Zahlen, die man vom Oche aus lesen kann – in Hell und Dunkel.</p>
+      </div>
+      <div class="einblicke">
+        <figure class="bild">
+          <img src="bilder/spiel-hell.jpg" alt="DARTRIO im hellen Design während eines Spiels" loading="lazy" width="1600" height="1000">
+          <figcaption><b>Im Spiel.</b> Restpunkte, letzte Aufnahme und Durchschnitt auf einen Blick.</figcaption>
+        </figure>
+        <figure class="bild">
+          <img src="bilder/bulloff-dunkel.jpg" alt="Bull-Off: zwei Darts nahe am Bull, Abstand zur Mitte in Millimetern" loading="lazy" width="1600" height="1000">
+          <figcaption><b>Bull-Off.</b> Wer näher am Bull ist, beginnt – auf den Millimeter gemessen.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="so-gehts" style="padding-top: 0">
+    <div class="wrap">
+      <div class="titel">
+        <small>So geht's</small>
+        <h2>In drei Schritten startklar.</h2>
+      </div>
+      <div class="schritte">
+        <div class="schritt"><h3>Installieren</h3><p>DARTRIO für Mac oder Windows laden und installieren – ganz unten auf dieser Seite.</p></div>
+        <div class="schritt"><h3>Kalibrieren</h3><p>Kameras anschließen, Board leer lassen, DARTRIO starten. Den Rest erledigt die App.</p></div>
+        <div class="schritt"><h3>Spielen</h3><p>Spiel wählen und werfen. Darts ziehen – die Aufnahme wird automatisch gebucht.</p></div>
+      </div>
+      <div class="setup">
+        <img src="bilder/setup.jpg" alt="Dartboard mit Kamera-Ring und DARTRIO-Steuerbox an der Wand" loading="lazy" width="1000" height="1000">
+        <div>
+          <h2 style="font-size: 30px">Was du brauchst</h2>
+          <ul>
+            <li><b>Steeldart-Board</b> nach Norm</li>
+            <li><b>5 USB-Kameras</b> rund um das Board, gleichmäßig verteilt</li>
+            <li><b>Mac</b> mit Apple-Chip (M1 oder neuer, macOS 12.3+) <b>oder Windows-PC</b> (Windows 10/11, 64 bit)</li>
+            <li>Gleichmäßiges Licht am Board – dann erkennt DARTRIO am zuverlässigsten</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="download">
+    <div class="wrap">
+      <div class="titel">
+        <small>Download</small>
+        <h2 id="dl-titel">Neueste Version</h2>
+        <p id="dl-unter">Kostenlos für Mac und Windows.</p>
+      </div>
+      <div class="dl-raster">
+        <div class="dl" id="dl-mac">
+          <div class="dl-kopf">
+            <h3><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.2 1-4 2.5-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-4zM14.1 5.5c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4z"/></svg>Mac</h3>
+            <span class="marke-klein" hidden>Für dich</span>
+          </div>
+          <div class="meta lade" data-meta>wird geladen …</div>
+          <ol class="anl">
+            <li>DMG öffnen, DARTRIO auf „Programme“ ziehen</li>
+            <li>Beim ersten Start: <i>Systemeinstellungen › Datenschutz &amp; Sicherheit › „Dennoch öffnen“</i></li>
+            <li>Kamera-Zugriff erlauben</li>
+          </ol>
+          <a class="knopf haupt" data-link href="https://github.com/dartrio2026/dartrio-updates/releases/latest">Für Mac laden</a>
+        </div>
+        <div class="dl" id="dl-win">
+          <div class="dl-kopf">
+            <h3><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10 4.5v7H3zM11 4.3 21 3v8.5H11zM3 12.5h7v7l-7-1zM11 12.5h10V21l-10-1.4z"/></svg>Windows</h3>
+            <span class="marke-klein" hidden>Für dich</span>
+          </div>
+          <div class="meta lade" data-meta>wird geladen …</div>
+          <ol class="anl">
+            <li>Setup starten und den Schritten folgen</li>
+            <li>Falls Windows warnt: <i>Weitere Informationen › Trotzdem ausführen</i></li>
+            <li>DARTRIO über Startmenü oder Desktop öffnen</li>
+          </ol>
+          <a class="knopf haupt" data-link href="https://github.com/dartrio2026/dartrio-updates/releases/latest">Für Windows laden</a>
+        </div>
+      </div>
+      <div class="info">
+        <span>Updates kommen danach automatisch über die App.</span>
+        <a href="https://github.com/dartrio2026/dartrio-updates/releases">Alle Versionen</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© DARTRIO</span>
+    <span>Läuft offline · Mac &amp; Windows</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Neueste Veröffentlichung direkt von GitHub holen – die Seite muss bei neuen Versionen nie angepasst werden.
+  var REPO = "dartrio2026/dartrio-updates";
+  var mac = /Mac/i.test(navigator.platform || navigator.userAgent), win = /Win/i.test(navigator.platform || navigator.userAgent);
+  var empfohlen = mac ? "dl-mac" : (win ? "dl-win" : null);
+  if (empfohlen) {
+    var k = document.getElementById(empfohlen);
+    k.classList.add("empfohlen"); k.querySelector(".marke-klein").hidden = false;
+  }
+  function mb(b) { return (b / 1048576).toFixed(0) + " MB"; }
+  function datum(s) { try { return new Date(s).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" }); } catch (e) { return ""; } }
+  function setzen(id, asset, v, d) {
+    var k = document.getElementById(id), m = k.querySelector("[data-meta]");
+    m.classList.remove("lade");
+    if (!asset) { m.textContent = "Version " + v + " – für dieses System noch nicht verfügbar"; return; }
+    m.textContent = "Version " + v + " · " + mb(asset.size) + (d ? " · " + d : "");
+    k.querySelector("[data-link]").href = asset.browser_download_url;
+  }
+  fetch("https://api.github.com/repos/" + REPO + "/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (rel) {
+      var v = String(rel.tag_name || "").replace(/^v/i, ""), d = datum(rel.published_at), a = rel.assets || [];
+      var dmg = a.filter(function (x) { return /\.dmg$/i.test(x.name); })[0];
+      var exe = a.filter(function (x) { return /setup.*\.exe$/i.test(x.name); })[0];
+      setzen("dl-mac", dmg, v, d); setzen("dl-win", exe, v, d);
+      document.getElementById("dl-titel").textContent = "DARTRIO " + v;
+      document.getElementById("dl-unter").textContent = "Veröffentlicht am " + d + " · kostenlos für Mac und Windows.";
+      document.getElementById("held-version").textContent = "Version " + v + " · für Mac und Windows";
+      var held = document.getElementById("held-download"), passend = mac ? dmg : (win ? exe : null);
+      if (passend) { held.href = passend.browser_download_url; held.querySelector("span").textContent = mac ? "Für Mac laden" : "Für Windows laden"; }
+    })
+    .catch(function () {
+      [].forEach.call(document.querySelectorAll("[data-meta]"), function (m) { m.classList.remove("lade"); m.textContent = "Neueste Version auf GitHub"; });
+    });
+})();
+</script>
+</body>
+</html>
